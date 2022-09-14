@@ -1,0 +1,1 @@
+mysql -u dev -h 192.168.2.196 -P 3386 -p // acceding remotely to a remote mysql
