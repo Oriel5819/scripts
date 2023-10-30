@@ -1,0 +1,55 @@
+// initialize elastic search
+
+const elasticsearch = require("elasticsearch");
+
+const esClient = elasticsearch.Client({
+  host: "http://host:port",
+});
+
+// retrieve
+esClient
+    .search({
+      index: "enm_classified",
+      body: {
+        "query": {
+          "wildcard": { 
+            "MO": "*"+searchText+"*"
+          },
+        },
+        "size": 1000,
+        "from": 0,
+        "sort": [{ "EventTime.keyword": "desc" }],
+      },
+    })
+    .then((response) => {
+
+      res.send({ response });
+    })
+    .catch((err) => {
+      res.send({ data: [] });
+    });
+    
+// update
+
+esClient.updateByQuery({
+    index: "enm_classified",
+    body: {
+      query: {
+        bool: { must }
+      },
+      script: {
+        source: "ctx._source.Classification = params.new_Classification",
+        lang: "painless",
+        params: {
+          new_Classification: Classification
+        }
+      }
+    }
+  })
+  .then(function(response){ 
+    res.send(response)  
+    // const historyFromElk = response.hits.hits;
+    // console.log(response);
+  })
+  .catch(function(error){ console.log(error.message) })
+});

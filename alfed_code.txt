@@ -1,0 +1,27 @@
+$.confirm({
+	closeIcon: true,
+	boxWidth: '80%',
+	useBootstrap: false,
+	 draggable: false,
+	content: function () {
+	    var self = this;
+	    return $.ajax({
+		url: '/access_menu/equipe_details/' + id_slipted[1],
+		method: 'get'
+	    }).done(function (response) {
+
+		self.setContent(response);
+		self.setTitle('Equipe "'+equipes[aaa].name_equipe+'"');
+	    }).fail(function () {
+		self.setContent('Something went wrong.');           
+	    });
+	},
+	buttons: {
+	    fermer: {
+		text: 'Fermer', // With spaces and symbols
+		action: function () {
+
+		}
+	    }
+	}
+});

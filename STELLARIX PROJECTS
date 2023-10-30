@@ -1,0 +1,22 @@
+// History alarm
+
+route => alfred-sites/sites/routes/sites_details.js //historyAlarm
+
+client => alfred-web/public/javascript/sites/site_alarme.js // historyAlarm // updateHistoryAlarm
+
+Database => 178/alarme.base_bande_du_alarms
+
+setting classification from
+need VPN
+
+sshfs -o allow_other root@Alfred-Web:/opt/Alfred /home/ix0026/Desktop/lives/root-web/ // root web
+sshfs -o allow_other root@10.200.200.177:/opt/Alfred-snmp-env/traplistener /home/ix0026/Desktop/lives/trappListener/  //app.js
+
+
+// pmr project
+alfred/pmr
+git : https://gitlab.alfred.mg/alfred/pmr.git
+server : 10.200.200.196
+
+module federation
+tuleap

@@ -1,0 +1,12 @@
+I - replace nodemon to pm2 to avoid:
+1 - waiting for change after every crach
+2 - restart after every file writting.
+
+it is better to use pm2
+
+II - promise map with "new Promise.all()" or use the tradutionnaly for loop for executing async functions in secquence.
+
+sshpass -p “ENTER PASSWORD HERE” ssh testuser@192.168.10.10
+
+sudo apt --fix-broken install
+

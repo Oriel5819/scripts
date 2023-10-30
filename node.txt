@@ -1,0 +1,21 @@
+// must know npm package
+validator
+chalk
+yargs
+
+// install package with a specific version
+npm i package@version -g // g for global
+
+// must know javascript functions
+encodeURIComponent(string);
+path
+
+// object property shorthand
+// object property destruct
+
+// callback is an async function, i.e it wait for results
+
+// html:tag:attribute
+
+// whatsapp api
+ultramsg

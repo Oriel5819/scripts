@@ -1,0 +1,4 @@
+// to add new coming to a user noc
+// he or she is not in planning noc
+1 - go to user_ui.login
+2 - set is_noc to 1

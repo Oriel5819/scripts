@@ -1,0 +1,21 @@
+enter to kubenetes:
+yaml
+helm
+
+customize the helm command
+
+#kubernetes
+#helm (add, delete, edit services)
+#kubectl
+#namespaces
+#datahub
+
+1 - install DataHub from ArtifactHub
+ -- create a namespace with "kubectl create namespace name"
+ -- 
+ 
+ 
+ #kubectl get pods -n namespacename -w // list all pods
+ 
+ code .kube/config
+

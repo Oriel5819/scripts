@@ -1,0 +1,601 @@
+const async = require('async');
+const moment = require('moment');
+const mongodb = require('mongodb');
+const axios = require('axios');
+const sslCertificate = require('get-ssl-certificate');
+const MONGO_DB = process.env.MONGO_DB || `mongodb://alfred:${encodeURIComponent('Noc4dm1n@lfr3d')}@AlfredMongo2:27017`;
+const default_configuration_mongo = { useUnifiedTopology: true, useNewUrlParser: true };
+
+const MYSQL_DATETIME_FOMMAT = "YYYY-MM-DD HH:mm:ss";
+
+const Services = {
+    iterateServiceCheck: () => {
+        return new Promise((resolve, reject) => {
+            let listService_check = {}
+            Services.getAllCheks()
+            .then(response_ => {
+                
+                console.log({ total: response_.length })
+
+                async.each(response_, (check_, callb) => {
+
+                    const { _id, checks } = check_;
+                    const tabCheck = Object.keys(checks);
+
+                    // console.log(`--- Init :: `, { _id })
+                    
+                    async.each(tabCheck, (checkType, callback) => {
+                        let check_data = {
+                            check_id: _id.toString(),
+                            Check_type: checkType
+                        }
+
+		                // console.log(check_data)
+
+                        switch (checkType) {
+                            case "http":
+                            case 'imap':
+                            case 'smtp':
+                            case "https":
+                                const tabPort = Object.keys(checks[checkType]);
+                                async.each(tabPort, (port, callb1) => {
+                                    const { Apdex, server_list } = checks[checkType][port];
+                                    
+                                    check_data.Port = port;
+
+                                    if (server_list && server_list.length > 0) {
+                                        async.each(server_list, (sourceItem, callb2) => {
+                                            const checkKey = `${_id}__${checkType}__${port}__${sourceItem.host_id}`;
+                                            
+                                            listService_check[checkKey] = {
+                                                ...check_data,
+                                                source: sourceItem.host_id
+                                            }
+
+                                            callb2();
+                                        },() => {
+                                            callb1();
+                                        })
+                                    }
+                                    else {
+                                        callb1();
+                                    }
+                                },() => {
+                                    callback();
+                                })
+                            break;                    
+                            case "dns":
+                            case 'pop3':
+                            case "ping":
+                            case 'tcp_port':
+                            case 'udp_port':
+                                const { Apdex, server_list } = checks[checkType];
+
+                                // console.log({ ...check_data, ...server_list })                              
+				
+                                if (server_list && server_list.length > 0) {
+                                    async.each(server_list, (sourceItem, callb2) => {
+                                        const checkKey = `${_id}__${checkType}__${sourceItem.host_id}`;
+
+                                        listService_check[checkKey] = {
+                                            ...check_data,
+                                            source: sourceItem.host_id
+                                        }
+
+                                        callb2();
+                                    },() => {
+                                        callback();
+                                    })
+                                }
+                                else {
+                                    callback();
+                                }
+                            break;
+                        }
+                    },() => {
+                        // console.log(`- Done :: `, { check_id: _id.toString() }, `\n`)
+                        callb();
+                    })
+                },() => {
+		            console.log('- iterateServiceCheck :: OK')
+                    resolve(listService_check)
+                })                
+            })
+            .catch(e => {
+                console.log(e);
+            })            
+        })
+    },
+    getCertificate: ({ baseURL }) => {
+        return new Promise((resolve, reject) => {
+            sslCertificate
+            .get(baseURL)
+            .then(certificate => {
+                // console.log(certificate);
+                const algorithm = "SHA-256 with RSA encryption";
+                let { subjectaltname, issuer,  valid_from, valid_to } = certificate;
+
+                const tabDNS = subjectaltname.split('DNS:')
+
+                valid_to = moment(new Date(valid_to)).format(MYSQL_DATETIME_FOMMAT);
+                valid_from = moment(new Date(valid_from)).format(MYSQL_DATETIME_FOMMAT);
+
+                resolve({ tabDNS, issuer, algorithm, valid_from, valid_to });
+            })
+            .catch(e => {
+                console.log(e);
+            })
+        })
+    },
+    getAllCheks: () => {
+        // console.log(`- Get all service checks `)
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+            
+            try {
+                await client.connect();
+                const db = client.db("services_check");
+                const services = db.collection("services");
+                const tabService_checks = await services.find({}).toArray();
+
+                // console.log(`- all service checks OK`)
+
+                resolve(tabService_checks);
+            } 
+            catch (e) {
+                console.error(e);
+                reject(e);
+            }
+            finally {
+                client.close()
+            }
+        })
+    },
+    getBy_id: ({ idCheck }) => {
+        return new Promise(async (resolve, reject) => {
+            // console.log({ idCheck })
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+            try {
+                await client.connect();
+                const _id = new mongodb.ObjectID(idCheck);
+
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                // console.log(`- get info check _id: ${idCheck}`);
+
+                const dataServiceCheck = await services.findOne({ _id });
+
+                resolve(dataServiceCheck);
+
+            } catch (e) {
+                console.error(e);
+                reject(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    getByType: ({ check_id, type, port }) => {
+        return new Promise( async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+            try {
+                await client.connect();
+
+                const _id = new mongodb.ObjectID(check_id);
+
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                let toGet = {}
+
+                toGet['baseURL'] = 1
+
+                if (typeof port != 'undefined') {
+                    toGet[`checks.${type}.${port}`] = 1;
+                }
+                else {
+                    toGet[`checks.${type}`] = 1;
+                }
+
+                const { baseURL, checks } = await services.findOne({ _id }, toGet);
+                const resFindCheck = checks[type];
+
+                if (typeof port != 'undefined') {
+                    resolve({ _id, baseURL, ...resFindCheck[port] })
+                }
+                else {
+                    resolve({ _id, baseURL, ...resFindCheck })
+                }
+
+            } catch (e) {
+                console.error(e);
+                reject(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    findServiceCheck: (query) => {
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+            try {
+                await client.connect();
+
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                const dataServiceCheck = await services.findOne(query);
+                resolve(dataServiceCheck);
+
+            } catch (e) {
+                console.error(e);
+                reject(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    findServicesCheck: (query) => {
+        // console.log(`--- start findServicesCheck `,query);
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+            try {
+                await client.connect();
+
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                const dataServiceCheck = await services.find(query).toArray();
+                // console.log(`--- end findServicesCheck `);
+                resolve(dataServiceCheck);
+
+            } catch (e) {
+                console.error(e);
+                reject(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    add: (dataCheck) => {
+
+        let { check_id, check_type, newValue } = dataCheck;
+
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+
+            try {
+                await client.connect();
+
+                const _id = new mongodb.ObjectID(check_id);
+
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                let toUpdate = {};
+
+                newValue.status = {
+                    value: 1,
+                    text: 'up',
+                    lastChangeTime: new Date()
+                }
+
+                toUpdate[`checks.${check_type}`] = newValue;
+
+		        /*
+                console.log({
+                    _id, check_type, toUpdate
+                });
+		        */
+                await services.findOneAndUpdate({ _id }, { $set: toUpdate });
+
+                resolve({ _id, check_id, check_type, toUpdate });
+
+            } catch (e) {
+                console.log(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    create: (dataServiceCheck) => {
+
+        const { checks } = dataServiceCheck
+
+        const check_type = Object.keys(checks)[0]
+
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+            try {
+                await client.connect();
+
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                const newServiceCheck = await services.insertOne(dataServiceCheck);
+
+                dataServiceCheck._id = newServiceCheck.insertedId;
+
+                resolve({ ...dataServiceCheck, check_type });
+
+            } catch (e) {
+                console.error(e);
+                reject(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    edit: (dataCheck) => {
+        const { check_id, type, newValue } = dataCheck;
+
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+
+            try {
+                await client.connect();
+
+                const _id = new mongodb.ObjectID(check_id);
+
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                let toUpdate = {};
+
+                for (const key in newValue) {
+                    if (Object.hasOwnProperty.call(newValue, key)) {
+                        const value_ = newValue[key];
+                        toUpdate[`checks.${type}.${key}`] = value_;
+                    }
+                }
+
+		        /*
+                console.log({
+                    _id, type, toUpdate
+                });
+		        */
+                await services.findOneAndUpdate({ _id }, { $set: toUpdate });
+
+                resolve({ _id, check_id, check_type: type, newValue });
+
+            } catch (e) {
+                console.log(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    delete: (args) => {
+        const { idCheck } = args;
+
+        return new Promise( async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+
+            try {
+                await client.connect();
+                const _id = new mongodb.ObjectID(idCheck);
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                await services.deleteOne({ _id })
+
+                resolve()
+            }
+            catch(e) {
+                console.log(e)
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    removeCheck: ({ idCheck, type, port }) => {
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+
+            try {
+                await client.connect();
+                const _id = new mongodb.ObjectID(idCheck);
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                let toUnset = {}
+
+                if(typeof port != 'undefined') {
+                    toUnset[`checks.${type}.${port}`] = 1;
+                }
+                else {
+                    toUnset[`checks.${type}`] = 1;
+                }
+
+                // console.log('toUnset',toUnset)
+                await services.updateOne({ _id }, { $unset: toUnset })
+
+                resolve()
+            }
+            catch (e) {
+                console.log(e)
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    listServer: (server) => {
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+            try {
+                await client.connect();
+
+                const db = client.db("services_check");
+                const servers = db.collection("server_list");
+
+                const tabServer = await servers.find({}).toArray();
+
+                resolve(tabServer);
+
+            } catch (e) {
+                console.error(e);
+                reject(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    addServer: (server) => {
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+            try {
+                await client.connect();
+
+                const db = client.db("services_check");
+                const servers = db.collection("server_list");
+
+                const resAddServer = await servers.insertOne(server);
+
+                server._id = resAddServer.insertedId;
+
+                resolve(server);
+
+            } catch (e) {
+                console.error(e);
+                reject(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    setLastStatusValue: (lastStatus) => {
+        // console.log(lastStatus);
+        const { check_id, check_type, newValue, port } = lastStatus;
+
+        return new Promise(async (resolve, reject) => {
+            const client = new mongodb.MongoClient(MONGO_DB, default_configuration_mongo);
+
+            try {
+                await client.connect();
+
+                const _id = new mongodb.ObjectID(check_id);
+
+                const db = client.db("services_check");
+                const services = db.collection("services");
+
+                let toUpdate = {};
+
+                if(typeof port != "undefined" && port != null) {
+                    toUpdate[`checks.${check_type}.${port}.status`] = newValue;
+                }
+
+                else {
+                    toUpdate[`checks.${check_type}.status`] = newValue;
+                }
+                if(check_type != "ping") Services.notifyClient({newValue, port, check_id,check_type})
+                // console.log(`>>>> setLastStatusValue`,{ _id, check_type, toUpdate });
+
+                await services.findOneAndUpdate({ _id }, { $set: toUpdate });
+
+                resolve({ _id, check_type, toUpdate});
+
+            } catch (e) {
+                console.log(e);
+            }
+            finally {
+                await client.close();
+            }
+        })
+    },
+    list_service_supervises: ({ idCheck }) => {
+        let tabServiceSupervise = [];
+        return new Promise((resolve, reject) => {
+            Services.getBy_id({ idCheck})
+            .then(respChecks => {
+                const { _id, baseURL, checks } = respChecks;
+                const tabCheck = Object.keys(checks);
+
+                async.each(tabCheck, (checkType, callback) => {
+
+                    switch (checkType) {
+                        case 'http':
+                        case 'https':
+                            const tabPort = Object.keys(checks[checkType]);
+
+                            for (let index = 0; index < tabPort.length; index++) {
+                                const port = tabPort[index];
+                                let check = { id: _id, urlText: baseURL, aliasUrlText: baseURL, urlType: checkType };
+                                const { status, Check_interval, Customized_message, server_list } = checks[checkType][port];
+
+                                check.Port = port;
+                                check.urlStatus = status;
+                                check.checkInterval = Check_interval;
+                                check.containsInput = Customized_message;
+                                check.monitoredAt = [];
+
+                                for (let i = 0; i < server_list.length; i++) {
+                                    const serverInfo = server_list[i];
+                                    check.monitoredAt.push({
+                                        server: serverInfo.host,
+                                        pays: (typeof serverInfo.pays != "undefined") ? serverInfo.pays : 'Madagascar'
+                                    })
+                                }
+
+                                tabServiceSupervise.push(check);
+                            }
+                        break;
+                        case 'ping':
+                            let check = { id: _id, urlText: baseURL, aliasUrlText: baseURL, urlType: checkType };
+                            const { status, Check_interval, Customized_message, server_list } = checks[checkType];
+
+                            check.urlStatus = status;
+                            check.checkInterval = Check_interval;
+                            check.containsInput = Customized_message;
+                            check.monitoredAt = [];
+
+                            for (let index = 0; index < server_list.length; index++) {
+                                const serverInfo = server_list[index];
+                                check.monitoredAt.push({
+                                    server: serverInfo.host,
+                                    pays: (typeof serverInfo.pays != "undefined") ? serverInfo.pays : 'Madagascar'
+                                })
+                            }
+
+                            tabServiceSupervise.push(check);
+                        break;
+                    }
+
+                    callback();
+                },() => {
+                    resolve(tabServiceSupervise);
+                })
+            })
+            .catch(e => {
+                console.log(e);
+                reject(e);
+            })
+        })
+    },
+    notifyClient: (d) => {
+        var portChangeSocketUrl = "http://10.210.210.96:3000/clientMonitorChange"
+
+        axios.post(portChangeSocketUrl, {
+            channel : "clientMonitorServiceCheckStatus",
+            data :{
+                ...d
+            }
+        }).then(() => {
+
+        }).catch(err => {
+
+        })
+    }
+};
+module.exports = Services;
