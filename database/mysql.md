@@ -24,6 +24,75 @@ WHERE base_band IS NOT NULL
 AND CodeSite IN (SELECT CodeSite FROM noc.rbs GROUP BY CodeSite HAVING COUNT(base_band) > 0) ORDER BY CodeSite;
 ```
 
+### Other examples
+```javascript
+
+try {
+			var connection = mysql.createConnection(option);
+			var selectQuery = `SELECT * FROM alarmes WHERE idNe = ${siteId} AND Date_Heure = '${Date_Heure}'`;
+
+			connection.query(selectQuery, function (err, result, fields) {
+				if (err) {
+					if (cb)
+						cb({ error: true, message: 'Error while finding idNe in alarmes', errorMessage: err });
+					connection.end();
+				}
+
+				else switch (result.length > 0) {
+					case true:
+						{
+							const updateQuery = mysql.format(`UPDATE alarmes SET ? WHERE ? AND ?`, [
+								{ alarmDetails },
+								{ idNe: siteId },
+								{ Date_Heure }
+							]);
+
+							connection.query(updateQuery, function (err, res) {
+								if (err) {
+									console.error(err);
+								}
+								else {
+									if (cb) {
+										cb({ error: false, res, message: 'updated' });
+									}
+								}
+								connection.end();
+							});
+						}
+						break;
+
+					case false:
+						{
+							const insertQuery = mysql.format(`INSERT INTO alarmes SET ?, ?, ?`, [
+								{ alarmDetails },
+								{ idNe: siteId },
+								{ Date_Heure }
+							]);
+
+							connection.query(insertQuery, function (err, res) {
+								if (err) {
+									console.error(err);
+								}
+								else {
+									if (cb) {
+										cb({ error: false, res, message: 'inserted' });
+									}
+								}
+								connection.end();
+							});
+						}
+						break;
+
+					default: console.log('IMPOSSIBLE CASE');
+						break;
+				}
+			});
+		} catch (error) {
+			cb('error');
+		}
+
+```
+
 ## Insert and on Duplicate Update
 ```
 INSERT INTO table (id,Col1,Col2) VALUES (1,1,1),(2,2,3),(3,9,3),(4,10,12)

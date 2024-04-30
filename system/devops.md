@@ -81,3 +81,17 @@ we need to put an image repo for each project in harbor
 3. Change owner `chown alfred:alfred -R ericsson` 
 NB: you cannot copy something in '/opt, /etc, ...' without using root
 
+## GETTING APP FROM ITS PORT
+1. netstat -tulnap | grep -i <port>
+2. ps -ef | grep -i <PID>
+`netstat -tulnap | grep -i <port> | wc -l`
+3. lsof -i | grep <port>
+4. ```
+pwdx <pid> // locate the project folder
+```
+
+## LOCATE FILE
+```
+locate <filename.extension>
+```
+

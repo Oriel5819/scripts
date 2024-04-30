@@ -27,9 +27,6 @@ docker run -it image_name sh
 docker run -it --entrypoint sh image_name
 docker image history --no-trunc image_name > image_history
 
-// running an image and it becomes a container
-docker run -v $(pwd):/<workdir_folder> -d -p <host_port>:<container_port> --name <image_name> <built_image_name>
-
 // to delete an image
 docker image rm <image_name>
 
@@ -40,6 +37,9 @@ docker rmi -f $(docker images -aq)
 docker push docker_repository/docker_image_name
 
 ## CONTAINERS
+
+// running an image and it becomes a container
+docker run -v $(pwd):/<workdir_folder> -d -p <host_port>:<container_port> --name <image_name> <built_image_name> --env-file ./.env
 
 // to show all the running containers
 docker ps
@@ -66,7 +66,7 @@ docker rm -vf $(docker ps -aq)
 // to live tail logs
 docker logs --follow <container>
 
-# LOGING
+## LOGING
 docker login
 
 
@@ -82,6 +82,33 @@ docker run -d -p 5000:5000 -p 5050:5050 --name acceptance-api-container acceptan
 docker exec -it acceptance-api-container bash
 
 npx kill-port 8000
+
+## ENVIRONMENT
+
+```
+FROM  node:20-bullseye
+
+WORKDIR /app
+
+COPY package.json .
+COPY ./build ./
+
+RUN npm install
+
+# ENVIRONMENT
+ENV PORT 5050 
+ENV TZ Indian/Antananarivo
+
+ENV AMQ_USER=alfred
+ENV AMQ_SERVER=10.210.210.54
+ENV AMQ_PASSWORD=4lfr3dP455
+
+EXPOSE $PORT
+
+CMD [ "node", "index.js"]
+```
+
+## Docker-compose
 
 
 mongo --host 

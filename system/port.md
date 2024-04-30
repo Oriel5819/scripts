@@ -2,6 +2,8 @@
 
 ## CHECK WHETHER PORT RUNNING
 `
+sudo lsof -i | grep <port>
+//or
 lsof -i :<port>
 `
 ## KILL A PORT

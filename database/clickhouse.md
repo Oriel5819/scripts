@@ -30,13 +30,7 @@ SELECT name, comment FROM system.databases WHERE name = 'db_comment';
 `
 ALTER TABLE logs.pmr_repport RENAME COLUMN command TO ip;
 `
-### ADD COLUMN
-```sql
-ALTER TABLE alter_test ADD COLUMN Added1 UInt32 FIRST;
-ALTER TABLE alter_test ADD COLUMN Added2 UInt32 AFTER NestedColumn;
-ALTER TABLE alter_test ADD COLUMN Added3 UInt32 AFTER ToDrop;
-DESC alter_test FORMAT TSV;
-```
+
 ### SELECT
 ```sql
 SELECT * FROM logs.pmr_log WHERE codesite = 'LAMO002'ORDER BY createdAt DESC LIMIT 10 FORMAT JSON;
@@ -83,6 +77,18 @@ CREATE OR REPLACE TABLE test
 ENGINE = MergeTree
 ORDER BY id;
 
+CREATE OR REPLACE TABLE executor_log
+(
+    id UInt32,
+    app String,
+    status String,
+    perfomed_at DateTime,
+    created_at DateTime DEFAULT now(),
+    updated_at Date DEFAULT toDate(created_at)
+)
+ENGINE = MergeTree
+ORDER BY created_at;
+
 INSERT INTO test (id) Values (1);
 
 SELECT * FROM test;
@@ -94,12 +100,22 @@ SELECT * FROM test;
 ### ALTER TABLE COLUMN
 `
 ALTER TABLE test MODIFY COLUMN col_name Nullable(UInt64)
+
+ALTER TABLE table1 RENAME COLUMN old_name TO new_name
 `
 
 ### TRUNCATE TABLE
 `
 TRUNCATE TABLE pmr_repport;
 `
+
+### ADD COLUMN
+```sql
+ALTER TABLE alter_test ADD COLUMN Added1 UInt32 FIRST;
+ALTER TABLE alter_test ADD COLUMN Added2 UInt32 AFTER NestedColumn;
+ALTER TABLE alter_test ADD COLUMN Added3 UInt32 AFTER ToDrop;
+DESC alter_test FORMAT TSV;
+```
 
 ### DROP
 `
