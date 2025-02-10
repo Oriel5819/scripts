@@ -1,0 +1,135 @@
+-- CREATE OR REPLACE VIEW logs.v_pmr
+-- (
+--     `codesite` String,
+--     `pmrType` String,
+--     `ConsumedEnergy_Wh` Nullable(Float32),
+--     `PowerConsumption_W` Nullable(Float32),
+--     `Voltage_V` Nullable(Float32),
+--     `pmrDatetime` DateTime,
+--     `createdAt` DateTime
+-- ) AS
+-- SELECT DISTINCT
+--     codesite,
+--     pmrType,
+--     ConsumedEnergy_Wh,
+--     PowerConsumption_W,
+--     Voltage_V,
+--     pmrDatetime,
+--     createdAt
+-- FROM logs.pmr_log
+-- WHERE (pmrDatetime > '2024-09-01 00:00:00') AND (Voltage_V IS NOT NULL) AND (Voltage_V != 0) AND (Voltage_V <= 46)
+-- ORDER BY
+--     codesite ASC,
+--     pmrType ASC,
+--     pmrDatetime ASC,
+--     createdAt ASC
+
+
+-- WITH ordered_data AS (
+--     SELECT
+--         *,
+--         row_number() OVER (PARTITION BY codesite, pmrType ORDER BY pmrDatetime) AS row_num
+--     FROM
+--         v_pmr
+--     WHERE
+--         codesite = 'VAK020'
+--     AND 
+--         ((pmrDatetime >= '2024-09-07 13:00:00' AND pmrDatetime <= '2024-09-07 14:00:00') 
+--     OR  (createdAt >= '2024-09-07 13:00:00' AND createdAt <= '2024-09-07 14:00:00'))
+-- ),
+-- listed_data AS (SELECT
+--     tab1.*,
+--     tab2.*
+-- FROM
+--     ordered_data AS tab1
+-- LEFT JOIN
+--     ordered_data AS tab2
+--     ON tab1.codesite = tab2.codesite
+--     AND tab1.pmrType = tab2.pmrType
+--     AND tab1.row_num = tab2.row_num + 1
+-- ORDER BY
+--     tab1.codesite, tab1.pmrType, tab1.pmrDatetime)
+-- SELECT DISTINCT codesite, pmrType, Voltage_V AS Current_Voltage_V_Value, pmrDatetime AS Current_Datetime, tab2.Voltage_V AS Previous_Voltage_V_Value, tab2.pmrDatetime AS Previous_Datetime 
+-- FROM listed_data 
+-- WHERE Voltage_V IS NOT NULL AND tab2.Voltage_V IS NOT NULL AND Voltage_V != 0 AND tab2.Voltage_V != 0
+
+
+-- WITH ordered_data AS (
+--     SELECT
+--         *,
+--         row_number() OVER (PARTITION BY codesite, pmrType ORDER BY pmrDatetime) AS row_num
+--     FROM
+--         v_pmr
+--     WHERE
+--         ((pmrDatetime >= '2024-10-07 14:00:00' AND pmrDatetime <= '2024-10-07 15:00:00') 
+--     OR  (createdAt >= '2024-10-07 14:00:00' AND createdAt <= '2024-10-07 15:00:00'))
+-- ),
+-- listed_data AS (SELECT
+--     tab1.*,
+--     tab2.*
+-- FROM
+--     ordered_data AS tab1
+-- LEFT JOIN
+--     ordered_data AS tab2
+--     ON tab1.codesite = tab2.codesite
+--     AND tab1.pmrType = tab2.pmrType
+--     AND tab1.row_num = tab2.row_num + 1
+-- ORDER BY
+--     tab1.codesite, tab1.pmrType, tab1.pmrDatetime)
+-- SELECT DISTINCT codesite, pmrType, Voltage_V AS Current_Voltage_V_Value, pmrDatetime AS Current_Datetime, tab2.Voltage_V AS Previous_Voltage_V_Value, tab2.pmrDatetime AS Previous_Datetime 
+-- FROM listed_data 
+-- WHERE Voltage_V IS NOT NULL AND tab2.Voltage_V IS NOT NULL AND Voltage_V != 0 AND tab2.Voltage_V != 0;
+
+
+-- WITH ordered_data AS (
+--     SELECT
+--         *,
+--         row_number() OVER (PARTITION BY codesite, pmrType ORDER BY pmrDatetime) AS row_num
+--     FROM
+--         v_pmr
+--     WHERE
+--         (createdAt >= '2024-09-07 14:00:00' AND createdAt <= '2024-09-07 15:00:00')
+-- ),
+-- listed_data AS (SELECT
+--     tab1.*,
+--     tab2.*
+-- FROM
+--     ordered_data AS tab1
+-- LEFT JOIN
+--     ordered_data AS tab2
+--     ON tab1.codesite = tab2.codesite
+--     AND tab1.pmrType = tab2.pmrType
+--     AND tab1.row_num = tab2.row_num + 1
+-- ORDER BY
+--     tab1.codesite, tab1.pmrType, tab1.pmrDatetime)
+-- SELECT DISTINCT codesite, pmrType, Voltage_V AS Current_Voltage_V_Value, pmrDatetime AS Current_Datetime, tab2.Voltage_V AS Previous_Voltage_V_Value, tab2.pmrDatetime AS Previous_Datetime 
+-- FROM listed_data 
+-- WHERE Voltage_V IS NOT NULL AND tab2.Voltage_V IS NOT NULL AND Voltage_V != 0 AND tab2.Voltage_V != 0;
+
+
+-- WITH ordered_data AS (
+--     SELECT
+--         *,
+--         row_number() OVER (PARTITION BY codesite, pmrType ORDER BY pmrDatetime) AS row_num
+--     FROM
+--         v_pmr
+--     WHERE
+--         codesite = 'VAK020'
+--     AND
+--         (pmrDatetime >= '2024-10-07 13:00:00' AND pmrDatetime <= '2024-10-07 14:00:00') 
+-- ),
+-- listed_data AS (SELECT
+--     tab1.*,
+--     tab2.*
+-- FROM
+--     ordered_data AS tab1
+-- LEFT JOIN
+--     ordered_data AS tab2
+--     ON tab1.codesite = tab2.codesite
+--     AND tab1.pmrType = tab2.pmrType
+--     AND tab1.row_num = tab2.row_num + 1
+-- ORDER BY
+--     tab1.codesite, tab1.pmrType, tab1.pmrDatetime)
+-- SELECT DISTINCT codesite, pmrType, Voltage_V AS Current_Voltage_V_Value, pmrDatetime AS Current_Datetime, tab2.Voltage_V AS Previous_Voltage_V_Value, tab2.pmrDatetime AS Previous_Datetime 
+-- FROM listed_data 
+-- WHERE Voltage_V IS NOT NULL AND tab2.Voltage_V IS NOT NULL AND Voltage_V != 0 AND tab2.Voltage_V != 0;

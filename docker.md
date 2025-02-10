@@ -113,3 +113,32 @@ CMD [ "node", "index.js"]
 
 mongo --host 
  ctrl + M (change tab moves focus)
+ 
+
+## EXAMPLES
+
+### MySQL
+
+```
+docker run -d -p 3306:3306 --name local-mysql -e MYSQL_ROOT_PASSWORD=toor mysql
+```
+
+```
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: local-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: toor
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  mysql-data:
+  
+```
+

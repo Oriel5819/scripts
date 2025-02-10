@@ -17,9 +17,11 @@ git remote set-url <name> <new_url>
 ```
 
 ## Fetch
-```javascript:
+```bash
 git fetch // fetch all
 git fetch origin/main // fetch main
+
+git branch -u origin/dev-alfred-telma-mg dev-alfred-telma-mg // link and track the remote with the local without changing anything
 ```
 
 ## Merge
