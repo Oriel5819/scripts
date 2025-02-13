@@ -113,7 +113,7 @@ CMD [ "node", "index.js"]
 
 mongo --host 
  ctrl + M (change tab moves focus)
- 
+
 
 ## EXAMPLES
 
@@ -140,5 +140,53 @@ services:
 volumes:
   mysql-data:
   
+```
+
+
+
+## PUSH IMAGE IN REGISTRY
+
+### Build the image
+
+```bash
+docker build -t <image_name> <docker_file_path>
+
+example:
+	docker build -t monitoring-image .
+```
+
+### Login to the docker image registry
+
+```bash
+docker login
+```
+
+### Tag the image
+
+```bash
+docker [image] tag <current_image_name><current_image_tag> <registry_name><new_image_name><new_image_tag>
+
+example:
+	docker tag monitoring-alerter-client-side-image:latest orielreg/monitoring-alerter-client-side-image:v1
+```
+
+### Push the image
+
+```bash
+# for typescript, do not forget to build before pushing the image
+
+docker [image] push <registry_name>/<image_name>:<image_tag>
+
+example:
+	docker image push orielreg/monitoring-alerter-client-side-image:v1
+```
+
+### Pull image
+
+```bash
+docker pull <image_name>:<image_tag>
+
+example:
+	docker pull orielreg/monitoring-alerter-client-side-image:v1
 ```
 

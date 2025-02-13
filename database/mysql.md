@@ -94,17 +94,59 @@ try {
 ```
 
 ## Insert and on Duplicate Update
-```
-INSERT INTO table (id,Col1,Col2) VALUES (1,1,1),(2,2,3),(3,9,3),(4,10,12)
-ON DUPLICATE KEY UPDATE Col1=VALUES(Col1),Col2=VALUES(Col2);
+```sql
+INSERT INTO table (id,Col1,Col2) 
+VALUES (1,1,1),(2,2,3),(3,9,3),(4,10,12)
+ON DUPLICATE KEY UPDATE 
+Col1=VALUES(Col1),
+Col2=VALUES(Col2);
+
+# OR
+
+INSERT INTO site_informations 
+SET codeTechno = 'BOE004', information = 'bE MINE'
+ON DUPLICATE KEY UPDATE
+codeTechno = VALUES(codeTechno),
+information = VALUES(information);
 ```
 
-### Getting rid of duplicates
+### Get all duplicates
+
+```sql
+# with count
+
+SELECT codeTechno, COUNT(*) AS count
+FROM site_comments
+GROUP BY codeTechno
+HAVING COUNT(*) > 1;
+
+# all
+
+SELECT * 
+FROM site_comments
+WHERE codeTechno IN (
+    SELECT codeTechno 
+    FROM site_comments 
+    GROUP BY codeTechno 
+    HAVING COUNT(*) > 1
+);
 ```
+
+### Getting rid of duplicates and keep one
+
+```sql
+DELETE FROM site_comments 
+WHERE id NOT IN (
+    SELECT MIN(id) 
+    FROM site_comments 
+    GROUP BY codeTechno
+);
+
+# MIN or MAX
 ```
 
 ### Getting specific
-```
+```sql
 SELECT * FROM logs.pmr_log WHERE codesite = 'LANM108' AND pmrDatetime IN (SELECT MAX(pmrDatetime) FROM logs.pmr_log WHERE codesite = 'LANM108');
 ```
 
@@ -118,8 +160,19 @@ SELECT CONVERT_TZ(updatedAt, '+00:00', '+03:00') as updatedAt FROM ericsson.sess
 SELECT id_check, COUNT(id_check) FROM ticket_node_checklist GROUP BY id_check HAVING COUNT(id_check) > 1;
 ```
 ### Delete all duplicates
-```
-DELETE t1 FROM ticket_node_checklist t1 INNER JOIN ticket_node_checklist t2 WHERE t1.id < t2.id AND t1.id_check = t2.id_check;
+```sql
+DELETE t1 
+FROM ticket_node_checklist t1 
+INNER JOIN ticket_node_checklist t2 
+WHERE t1.id < t2.id AND t1.id_check = t2.id_check;
+
+# OR
+
+#SELECT sc1.id, sc1.codeTechno, sc2.id, sc2.codeTechno 
+DELETE sc2
+FROM site_comments sc1, site_comments sc2
+WHERE sc1.codeTechno = sc2.codeTechno
+AND sc2.id < sc1.id;
 ```
 
 ## Connecting to node
@@ -220,5 +273,4 @@ FROM listed_data
 WHERE Voltage_V IS NOT NULL AND tab2.Voltage_V IS NOT NULL AND Voltage_V != 0 AND tab2.Voltage_V != 0
 
 ```
-
 
